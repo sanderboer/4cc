@@ -15,6 +15,7 @@ setup_mac_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
     Bind(keyboard_macro_replay,           KeyCode_U, KeyCode_Control);
     Bind(change_active_panel,           KeyCode_Comma, KeyCode_Command);
     Bind(change_active_panel_backwards, KeyCode_Comma, KeyCode_Command, KeyCode_Shift);
+    Bind(toggle_second_panel,           KeyCode_P, KeyCode_Command);
     Bind(interactive_new,               KeyCode_N, KeyCode_Command);
     Bind(interactive_open_or_new,       KeyCode_O, KeyCode_Command);
     Bind(open_in_other,                 KeyCode_O, KeyCode_Control);

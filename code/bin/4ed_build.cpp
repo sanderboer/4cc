@@ -73,6 +73,7 @@ typedef u32 Arch_Code;
 enum{
     Arch_X64,
     Arch_X86,
+    Arch_ARM64,
     
     //
     Arch_COUNT,
@@ -82,6 +83,7 @@ enum{
 char *arch_names[] = {
     "x64",
     "x86",
+    "arm64",
 };
 
 #if OS_WINDOWS
@@ -424,6 +426,10 @@ FOREIGN "/x64/libfreetype-mac.a"
 # define CLANG_LIBS_X86 CLANG_LIBS_COMMON \
 FOREIGN "/x86/libfreetype-mac.a"
 
+# define CLANG_LIBS_ARM64 CLANG_LIBS_COMMON \
+FOREIGN "/arm64/libfreetype-mac.a " \
+"-L/opt/homebrew/lib -lz -lbz2 -lpng"
+
 #else
 # error clang options not set for this platform
 #endif
@@ -441,6 +447,10 @@ build(Arena *arena, u32 flags, u32 arch, char *code_path, char **code_files, cha
         case Arch_X86:
         fm_add_to_line(line, "-m32");
         fm_add_to_line(line, "-DFTECH_32_BIT"); break;
+        
+        case Arch_ARM64:
+        fm_add_to_line(line, "-arch arm64");
+        fm_add_to_line(line, "-DFTECH_64_BIT"); break;
         
         default: InvalidPath;
     }
@@ -488,6 +498,10 @@ build(Arena *arena, u32 flags, u32 arch, char *code_path, char **code_files, cha
         else if (arch == Arch_X86)
         {
             fm_add_to_line(line, CLANG_LIBS_X86);
+        }
+        else if (arch == Arch_ARM64)
+        {
+            fm_add_to_line(line, CLANG_LIBS_ARM64);
         }
     }
     
@@ -583,6 +597,12 @@ build_main(Arena *arena, char *cdir, b32 update_local_theme, u32 flags, u32 arch
         fm_clear_folder(themes_folder);
         fm_make_folder_if_missing(arena, themes_folder);
         fm_copy_all(source_themes_folder, themes_folder);
+        
+        // Copy fonts folder (required for fallback font)
+        char *fonts_folder = fm_str(arena, "../build/fonts");
+        char *source_fonts_folder = fm_str(arena, "../non-source/dist_files/fonts");
+        fm_make_folder_if_missing(arena, fonts_folder);
+        fm_copy_all(source_fonts_folder, fonts_folder);
     }
     
     fflush(stdout);
@@ -706,6 +726,14 @@ int main(int argc, char **argv){
     
     u32 flags = SUPER;
     u32 arch = Arch_X64;
+    
+#if OS_MAC
+    // Auto-detect ARM64 on Apple Silicon Macs
+#if defined(__aarch64__) || defined(__arm64__)
+    arch = Arch_ARM64;
+#endif
+#endif
+    
 #if defined(DEV_BUILD) || defined(DEV_BUILD_X86)
     flags |= DEBUG_INFO | INTERNAL;
 #endif

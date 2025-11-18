@@ -210,13 +210,15 @@ system_quick_file_attributes_sig(){
 
 function inline Plat_Handle
 mac_to_plat_handle(i32 fd){
-    Plat_Handle result = *(Plat_Handle*)(&fd);
+    Plat_Handle result = {};
+    memcpy(&result, &fd, sizeof(fd));
     return(result);
 }
 
 function inline i32
 mac_to_fd(Plat_Handle handle){
-    i32 result = *(i32*)(&handle);
+    i32 result = 0;
+    memcpy(&result, &handle, sizeof(result));
     return(result);
 }
 
@@ -697,7 +699,7 @@ system_mutex_make_sig(){
 function
 system_mutex_acquire_sig(){
     Mac_Object *object = mac_to_object(mutex);
-    if (object->kind == MacObjectKind_Mutex){
+    if (object != 0 && object->kind == MacObjectKind_Mutex){
         pthread_mutex_lock(&object->mutex);
     }
 }

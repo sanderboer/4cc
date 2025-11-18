@@ -3,7 +3,7 @@
 // "choose"          - Ask 4coder to choose based on platform.
 // "default"         - Use the default keybindings 4coder has always had.
 // "mac-default"     - Use keybindings similar to those found in other Mac applications.
-mapping = "";
+mapping = "default";
 
 // MODE
 // "4coder"       - The default 4coder mode that has been around since the beginning of time (2015)
@@ -40,7 +40,7 @@ mark_thickness = 2;
 lister_roundness = 20;
 
 // Code Wrapping
-treat_as_code = ".cpp.c.hpp.h.cc.cs.java.rs.glsl.m.mm";
+treat_as_code = ".cpp.c.hpp.h.cc.cs.java.rs.glsl.m.mm.py";
 enable_virtual_whitespace = true;
 virtual_whitespace_regular_indent = 4;
 enable_code_wrapping = true;

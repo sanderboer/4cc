@@ -3,13 +3,24 @@
 
 // TODO(allen): intrinsics wrappers
 #if OS_LINUX
+#if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
+#define CPU_PAUSE() _mm_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+#define CPU_PAUSE() __asm__ __volatile__("yield")
+#endif
 #define _InterlockedExchangeAdd __sync_fetch_and_add
 #elif OS_MAC
+#if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
+#define CPU_PAUSE() _mm_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+#define CPU_PAUSE() __asm__ __volatile__("yield")
+#endif
 #define _InterlockedExchangeAdd __sync_fetch_and_add
 #else
 #include <intrin.h>
+#define CPU_PAUSE() _mm_pause()
 #endif
 
 function u32
@@ -24,7 +35,7 @@ function void
 def_audio_begin_ticket_mutex(Audio_System *Crunky)
 {
  u32 Ticket = AtomicAddU32AndReturnOriginal(&Crunky->ticket, 1);
- while(Ticket != Crunky->serving) {_mm_pause();}
+ while(Ticket != Crunky->serving) {CPU_PAUSE();}
 }
 
 function void
