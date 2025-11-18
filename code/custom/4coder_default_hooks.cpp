@@ -25,6 +25,11 @@ CUSTOM_DOC("Default command for responding to a startup event")
     }
     
     {
+        // Initialize language registry
+        language_register_defaults(app);
+    }
+    
+    {
         def_enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
         clear_all_layouts(app);
     }
@@ -295,27 +300,6 @@ default_render_buffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             };
             draw_comment_highlights(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));
         }
-        
-#if 0
-        // TODO(allen): Put in 4coder_draw.cpp
-        // NOTE(allen): Color functions
-        
-        Scratch_Block scratch(app);
-        ARGB_Color argb = 0xFFFF00FF;
-        
-        Token_Iterator_Array it = token_iterator_pos(0, &token_array, visible_range.first);
-        for (;;){
-            if (!token_it_inc_non_whitespace(&it)){
-                break;
-            }
-            Token *token = token_it_read(&it);
-            String_Const_u8 lexeme = push_token_lexeme(app, scratch, buffer, token);
-            Code_Index_Note *note = code_index_note_from_string(lexeme);
-            if (note != 0 && note->note_kind == CodeIndexNote_Function){
-                paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);
-            }
-        }
-#endif
     }
     else{
         paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));
@@ -490,25 +474,7 @@ default_render_caller(Application_Links *app, Frame_Info frame_info, View_ID vie
 
 function void
 default_whole_screen_render_caller(Application_Links *app, Frame_Info frame_info){
-#if 0
-    Rect_f32 region = global_get_screen_rectangle(app);
-    Vec2_f32 center = rect_center(region);
-    
-    Face_ID face_id = get_face_id(app, 0);
-    Scratch_Block scratch(app);
-    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),
-                         SCu8("Hello, World!"), center - V2f32(200.f, 300.f),
-                         0, V2f32(0.f, -1.f));
-    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),
-                         SCu8("Hello, World!"), center - V2f32(240.f, 300.f),
-                         0, V2f32(0.f, 1.f));
-    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),
-                         SCu8("Hello, World!"), center - V2f32(400.f, 400.f),
-                         0, V2f32(-1.f, 0.f));
-    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),
-                         SCu8("Hello, World!"), center - V2f32(400.f, -100.f),
-                         0, V2f32(cos_f32(pi_f32*.333f), sin_f32(pi_f32*.333f)));
-#endif
+    // Intentionally empty - reserved for custom whole-screen rendering
 }
 
 HOOK_SIG(default_view_adjust){
@@ -737,73 +703,26 @@ BUFFER_HOOK_SIG(default_begin_buffer){
     b32 treat_as_code = false;
     String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);
     if (file_name.size > 0){
-        String_Const_u8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
-        String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
         String_Const_u8 ext = string_file_extension(file_name);
-        for (i32 i = 0; i < extensions.count; ++i){
-            if (string_match(ext, extensions.strings[i])){
-                
-                if (string_match(ext, string_u8_litexpr("cpp")) ||
-                    string_match(ext, string_u8_litexpr("h")) ||
-                    string_match(ext, string_u8_litexpr("c")) ||
-                    string_match(ext, string_u8_litexpr("hpp")) ||
-                    string_match(ext, string_u8_litexpr("cc"))){
+        
+        // First, try language registry
+        Language_Support *lang = language_find_by_extension(ext);
+        if (lang != 0){
+            treat_as_code = true;
+            // Call language-specific init if defined
+            if (lang->init_fn != 0){
+                lang->init_fn(app);
+            }
+        }
+        else {
+            // Fallback to config file "treat_as_code" setting
+            String_Const_u8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
+            String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
+            for (i32 i = 0; i < extensions.count; ++i){
+                if (string_match(ext, extensions.strings[i])){
                     treat_as_code = true;
+                    break;
                 }
-                
-#if 0
-                treat_as_code = true;
-                
-                if (string_match(ext, string_u8_litexpr("cs"))){
-                    if (parse_context_language_cs == 0){
-                        init_language_cs(app);
-                    }
-                    parse_context_id = parse_context_language_cs;
-                }
-                
-                if (string_match(ext, string_u8_litexpr("java"))){
-                    if (parse_context_language_java == 0){
-                        init_language_java(app);
-                    }
-                    parse_context_id = parse_context_language_java;
-                }
-                
-                if (string_match(ext, string_u8_litexpr("rs"))){
-                    if (parse_context_language_rust == 0){
-                        init_language_rust(app);
-                    }
-                    parse_context_id = parse_context_language_rust;
-                }
-                
-                if (string_match(ext, string_u8_litexpr("cpp")) ||
-                    string_match(ext, string_u8_litexpr("h")) ||
-                    string_match(ext, string_u8_litexpr("c")) ||
-                    string_match(ext, string_u8_litexpr("hpp")) ||
-                    string_match(ext, string_u8_litexpr("cc"))){
-                    if (parse_context_language_cpp == 0){
-                        init_language_cpp(app);
-                    }
-                    parse_context_id = parse_context_language_cpp;
-                }
-                
-                // TODO(NAME): Real GLSL highlighting
-                if (string_match(ext, string_u8_litexpr("glsl"))){
-                    if (parse_context_language_cpp == 0){
-                        init_language_cpp(app);
-                    }
-                    parse_context_id = parse_context_language_cpp;
-                }
-                
-                // TODO(NAME): Real Objective-C highlighting
-                if (string_match(ext, string_u8_litexpr("m"))){
-                    if (parse_context_language_cpp == 0){
-                        init_language_cpp(app);
-                    }
-                    parse_context_id = parse_context_language_cpp;
-                }
-#endif
-                
-                break;
             }
         }
     }

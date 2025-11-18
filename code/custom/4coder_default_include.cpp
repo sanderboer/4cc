@@ -64,6 +64,7 @@
 #include "4coder_profile_inspect.h"
 #include "4coder_tutorial.h"
 #include "4coder_search_list.h"
+#include "4coder_language_registry.h"
 
 ////////////////////////////////
 
@@ -142,8 +143,12 @@
 #include "4coder_audio.cpp"
 #include "4coder_search_list.cpp"
 
+#include "4coder_language_registry.cpp"
 #include "4coder_examples.cpp"
 
+#include "4coder_unified_map.cpp"
+
+#include "4coder_custom_commands.cpp"
 #include "4coder_default_hooks.cpp"
 
 #endif
