@@ -25,8 +25,19 @@ language_registry_init(Application_Links *app){
 function void
 language_register(Language_Support language){
     if (global_language_registry.arena.base_allocator == 0){
-        // Registry not initialized, skip
+        // Registry not initialized - this is an error condition
+        // In a production system, you might want to log this
         return;
+    }
+    
+    // Check for duplicate registration by name
+    for (Language_Registration_Node *existing = global_language_registry.first;
+         existing != 0;
+         existing = existing->next){
+        if (string_match(existing->language.name, language.name)){
+            // Language already registered, skip duplicate
+            return;
+        }
     }
     
     Arena *arena = &global_language_registry.arena;
@@ -59,6 +70,11 @@ language_register(Language_Support language){
 
 function Language_Support*
 language_find_by_extension(String_Const_u8 extension){
+    if (global_language_registry.arena.base_allocator == 0){
+        // Registry not initialized
+        return(0);
+    }
+    
     for (Language_Registration_Node *node = global_language_registry.first;
          node != 0;
          node = node->next){
