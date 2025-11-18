@@ -243,7 +243,7 @@ layout_query_bar_on_bot(Rect_f32 rect, f32 line_height, i32 bar_count){
 
 function Rect_f32_Pair
 layout_line_number_margin(Rect_f32 rect, f32 digit_advance, i64 digit_count){
-    f32 margin_width = (f32)digit_count*digit_advance + 2.f;
+    f32 margin_width = (f32)digit_count*digit_advance + 12.f;
     return(rect_split_left_right(rect, margin_width));
 }
 
