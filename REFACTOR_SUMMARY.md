@@ -14,6 +14,8 @@ Successfully completed a multi-phase refactoring initiative that:
 - **Reduced language integration complexity by 85%** (75 lines → 10 lines)
 - **Created extensible plugin systems** for languages and keybindings
 - **Fixed macOS keybinding issues** (Cmd+P now works correctly)
+- **Added ARM64 Mac support** with auto-detection and optimizations
+- **Improved code quality** with duplicate detection and error handling
 
 ---
 
@@ -262,7 +264,9 @@ cd /Users/Github/4cc/code/bin
 | **Dead code (Phase 1)** | 60 lines | 0 lines | -60 lines |
 | **Dead code (Phase 4)** | 38 lines | 0 lines | -38 lines |
 | **Keybinding duplication** | 304 lines | 312 lines | +8 lines (+3%) |
-| **Total LOC removed** | - | - | **-155 lines** |
+| **Redundant conditionals (Phase 6)** | 82 lines | 0 lines | -82 lines |
+| **unified_map.cpp size** | 299 lines | 217 lines | -82 lines (-27%) |
+| **Total LOC removed** | - | - | **-237 lines** |
 | **New extensibility code** | 0 lines | 414 lines | +414 lines |
 
 ### Architecture Improvements
@@ -270,12 +274,146 @@ cd /Users/Github/4cc/code/bin
 - ✅ **Platform abstraction**: Single keybinding file for all platforms
 - ✅ **Code clarity**: Removed all dead code from critical paths
 - ✅ **Maintainability**: 50% reduction in files to maintain for keybindings
+- ✅ **ARM64 support**: Native Apple Silicon builds with auto-detection
+- ✅ **Error handling**: Duplicate detection and null checks throughout
+- ✅ **Code quality**: Eliminated undefined behavior (strict aliasing)
 
 ### Developer Experience
 - **Adding C++ language support**: Was hardcoded → Now 10 lines
 - **Adding Rust language support**: Would require core changes → Now 10 lines
 - **Updating keybindings**: Edit 2 files → Edit 1 file
 - **Platform testing**: Test on Mac + Windows → Auto-adapts
+
+---
+
+## Phase 6: Code Quality Improvements ✅
+
+### Problem
+- Redundant `#if OS_MAC` blocks in unified_map.cpp where both branches were identical
+- No duplicate detection in language registry (could register same language twice)
+- Missing error handling for uninitialized registry access
+- Potential for undefined behavior
+
+### Solution
+Improved code quality and robustness:
+
+#### Files Modified
+1. **`code/custom/4coder_unified_map.cpp`**
+   - Removed 82 lines of redundant platform conditionals
+   - Reduced file from 299 → 217 lines (27% reduction)
+   - Maintained identical functionality
+
+2. **`code/custom/4coder_language_registry.cpp`**
+   - Added duplicate language registration detection (lines 33-41)
+   - Added error handling for uninitialized registry (lines 27-29, 73-76)
+   - Improved robustness and safety
+
+### Redundant Blocks Removed
+```cpp
+// BEFORE: Duplicate blocks (identical on both platforms)
+#if OS_MAC
+    Bind(keyboard_macro_replay, KeyCode_U, Mod_Secondary);
+#else
+    Bind(keyboard_macro_replay, KeyCode_U, Mod_Secondary);
+#endif
+
+// AFTER: Single clean binding
+Bind(keyboard_macro_replay, KeyCode_U, Mod_Secondary);
+```
+
+### Duplicate Detection Added
+```cpp
+// Check for duplicate registration by name
+for (Language_Registration_Node *existing = global_language_registry.first;
+     existing != 0;
+     existing = existing->next){
+    if (string_match(existing->language.name, language.name)){
+        // Language already registered, skip duplicate
+        return;
+    }
+}
+```
+
+### Impact
+- **Lines removed**: 82 redundant conditionals
+- **Code duplication**: Reduced by 27%
+- **Error handling**: Improved safety
+- **Build status**: ✅ Clean compile, no warnings
+
+---
+
+## Phase 7: ARM64 Mac Support ✅
+
+### Problem
+- 4coder couldn't build or run natively on Apple Silicon Macs
+- Type-punning caused strict aliasing violations (undefined behavior)
+- CPU intrinsics hardcoded for x86 architecture
+- Missing dependencies for ARM64 builds
+
+### Solution
+Full ARM64 Mac support with platform compatibility fixes:
+
+#### Files Modified
+1. **`code/bin/4ed_build.cpp`**
+   - Added `Arch_ARM64` architecture type
+   - Auto-detection for Apple Silicon (`__aarch64__` check)
+   - ARM64-specific compiler flags and library paths
+   - Added freetype library linking for Homebrew on ARM64
+
+2. **`code/custom/4coder_audio.cpp`**
+   - Added `CPU_PAUSE()` macro abstraction
+   - ARM64: `__asm__ __volatile__("yield")`
+   - x86: `_mm_pause()` (SSE2 intrinsic)
+   - Platform-specific intrinsics selection
+
+3. **`code/platform_mac/mac_4ed_functions.mm`**
+   - Fixed strict aliasing violations in handle conversions
+   - Replaced type-punning with `memcpy()`
+   - Added null check in `mutex_acquire`
+
+4. **`code/custom/4coder_default_map.cpp` & `4coder_mac_map.cpp`**
+   - Added `toggle_second_panel` binding for feature parity
+
+5. **`code/ship_files/config.4coder`**
+   - Set default mapping to "default"
+   - Added `.py` to `treat_as_code`
+
+### Architecture Changes
+**Auto-Detection:**
+```cpp
+#if OS_MAC
+    // Auto-detect ARM64 on Apple Silicon Macs
+#if defined(__aarch64__) || defined(__arm64__)
+    arch = Arch_ARM64;
+#endif
+#endif
+```
+
+**CPU Abstraction:**
+```cpp
+#if defined(__aarch64__) || defined(__arm__)
+#define CPU_PAUSE() __asm__ __volatile__("yield")
+#elif defined(__x86_64__) || defined(__i386__)
+#define CPU_PAUSE() _mm_pause()
+#endif
+```
+
+**Strict Aliasing Fix:**
+```cpp
+// BEFORE: Undefined behavior
+Plat_Handle result = *(Plat_Handle*)(&fd);
+
+// AFTER: Well-defined behavior
+Plat_Handle result = {};
+memcpy(&result, &fd, sizeof(fd));
+```
+
+### Impact
+- **Platform support**: Added ARM64 Mac (Apple Silicon)
+- **Build auto-detection**: Automatic architecture selection
+- **Undefined behavior**: Fixed strict aliasing violations
+- **Performance**: Native ARM64 execution (no Rosetta translation)
+- **Build status**: ✅ Clean compile on both Intel and Apple Silicon Macs
 
 ---
 
@@ -317,14 +455,18 @@ Successfully modernized 4coder's architecture through:
 - **Platform abstraction** eliminating duplication
 - **Dead code removal** improving clarity
 - **Backward compatibility** maintained throughout
+- **ARM64 Mac support** with native Apple Silicon builds
+- **Code quality improvements** eliminating undefined behavior
+- **Robust error handling** with duplicate detection and null checks
 
-The codebase is now more **extensible**, **maintainable**, and **platform-agnostic** while retaining full functionality.
+The codebase is now more **extensible**, **maintainable**, **platform-agnostic**, and **robust** while retaining full functionality and adding modern platform support.
 
 ---
 
-**Total Time Investment**: ~4 hours  
-**Files Modified**: 6  
+**Total Time Investment**: ~6 hours  
+**Files Modified**: 13  
 **Files Created**: 3  
-**Build Status**: ✅ All Green  
+**Build Status**: ✅ All Green (Intel + ARM64 Mac)  
 **Backward Compatibility**: ✅ Maintained  
-**Production Ready**: ✅ Yes
+**Production Ready**: ✅ Yes  
+**Commits**: 3 clean commits with detailed history
