@@ -2,3 +2,15 @@ build/
 current_dist*/
 distributions/
 .DS_Store
+
+# External library symlinks (platform-specific)
+non-source/foreign/arm64/
+non-source/foreign/x64/
+non-source/foreign/x86/
+
+# Generated files
+*.i
+*.o
+*.so
+*.dylib
+metadata_generator
