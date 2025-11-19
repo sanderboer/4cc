@@ -132,6 +132,9 @@ struct Mac_Input_Chunk{
 @interface FCoder_App_Delegate : NSObject<NSApplicationDelegate>
 @end
 
+@interface FCoder_Window : NSWindow
+@end
+
 @interface FCoder_Window_Delegate : NSObject<NSWindowDelegate>
 - (void)process_focus_event;
 @end
@@ -645,6 +648,16 @@ mac_toggle_fullscreen(void){
 }
 
 - (void)applicationWillTerminate:(NSNotification*)notification{
+}
+@end
+
+@implementation FCoder_Window
+- (BOOL)canBecomeKeyWindow{
+    return YES;
+}
+
+- (BOOL)canBecomeMainWindow{
+    return YES;
 }
 @end
 
@@ -1325,6 +1338,7 @@ main(int arg_count, char **args){
 
         // NOTE(yuval): Init & command line parameters
         Plat_Settings plat_settings = {};
+        plat_settings.window_corner_radius = 10.0f; // Default macOS corner radius
         mac_vars.base_ptr = 0;
         {
             Scratch_Block scratch(mac_vars.tctx);
@@ -1418,9 +1432,9 @@ main(int arg_count, char **args){
         NSRect screen_rect = [[NSScreen mainScreen] frame];
         NSRect initial_frame = NSMakeRect((f32)(screen_rect.size.width - w) * 0.5f, (f32)(screen_rect.size.height - h) * 0.5f, w, h);
 
-        u32 style_mask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable;
+        u32 style_mask = NSWindowStyleMaskBorderless | NSWindowStyleMaskResizable;
 
-        mac_vars.window = [[NSWindow alloc] initWithContentRect:initial_frame
+        mac_vars.window = [[FCoder_Window alloc] initWithContentRect:initial_frame
                            styleMask:style_mask
                            backing:NSBackingStoreBuffered
                            defer:NO];
@@ -1431,9 +1445,32 @@ main(int arg_count, char **args){
         [mac_vars.window setMinSize:NSMakeSize(100, 100)];
         [mac_vars.window setBackgroundColor:NSColor.blackColor];
         [mac_vars.window setTitle:@"GRAPHICS"];
+        [mac_vars.window setMovableByWindowBackground:YES];
         [mac_vars.window setAcceptsMouseMovedEvents:YES];
 
         NSView* content_view = [mac_vars.window contentView];
+        
+        // NOTE(yuval): Add rounded corners to borderless window
+        if (plat_settings.window_corner_radius > 0.0f) {
+            // Set the window's opacity to see the rounding
+            [mac_vars.window setOpaque:NO];
+            [mac_vars.window setBackgroundColor:[NSColor clearColor]];
+            
+            // The border thickness (if you want a visible border, set this > 0)
+            f32 border_thickness = 1.0f;
+            
+            content_view.wantsLayer = YES;
+            // Content radius needs to be reduced by border thickness plus adjustment
+            content_view.layer.cornerRadius = plat_settings.window_corner_radius - border_thickness - 2.0f;
+            content_view.layer.masksToBounds = YES;
+            content_view.layer.backgroundColor = [[NSColor blackColor] CGColor];
+            
+            // Add a border if thickness > 0
+            if (border_thickness > 0.0f) {
+                content_view.layer.borderWidth = border_thickness;
+                content_view.layer.borderColor = [[NSColor darkGrayColor] CGColor];
+            }
+        }
 
         // NOTE(yuval): Create the 4coder view
         mac_vars.view = [[FCoder_View alloc] init];

@@ -23,6 +23,11 @@ lister_whole_word_backspace_when_modified = true;
 show_line_number_margins = true;
 enable_output_wrapping = false;
 
+// Window appearance (macOS only)
+// window_corner_radius sets the corner radius in pixels for borderless windows
+// Set to 0 for sharp corners, 10 for standard macOS rounded corners
+window_corner_radius = 10;
+
 enable_undo_fade_out = true;
 
 // cursor_roundess is a value [0,50] setting the radius of

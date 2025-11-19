@@ -29,6 +29,8 @@ struct Plat_Settings{
     
     b8 use_hinting;
     
+    f32 window_corner_radius;
+    
     char *user_directory;
 };
 

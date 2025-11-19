@@ -185,6 +185,7 @@ enum Command_Line_Action{
     CLAct_WindowMaximize,
     CLAct_WindowPosition,
     CLAct_WindowFullscreen,
+    CLAct_WindowCornerRadius,
     CLAct_FontSize,
     CLAct_FontUseHinting,
     CLAct_UserDirectory,

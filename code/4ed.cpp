@@ -49,6 +49,7 @@ init_command_line_settings(App_Settings *settings, Plat_Settings *plat_settings,
                                 case 'W': action = CLAct_WindowMaximize; break;
                                 case 'p': action = CLAct_WindowPosition; break;
                                 case 'F': action = CLAct_WindowFullscreen; break;
+                                case 'r': action = CLAct_WindowCornerRadius; break;
                                 
                                 case 'f': action = CLAct_FontSize; break;
                                 case 'h': action = CLAct_FontUseHinting; --i; break;
@@ -124,6 +125,17 @@ init_command_line_settings(App_Settings *settings, Plat_Settings *plat_settings,
                     {
                         --i;
                         plat_settings->fullscreen_window = true;
+                        action = CLAct_Nothing;
+                    }break;
+                    
+                    case CLAct_WindowCornerRadius:
+                    {
+                        if (i < argc){
+                            i32 radius_int = (i32)string_to_integer(SCu8(argv[i]), 10);
+                            if (radius_int >= 0){
+                                plat_settings->window_corner_radius = (f32)radius_int;
+                            }
+                        }
                         action = CLAct_Nothing;
                     }break;
                     
