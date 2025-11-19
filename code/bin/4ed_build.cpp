@@ -766,6 +766,9 @@ int main(int argc, char **argv){
 #elif defined(PACKAGE_SUPER_X86)
     package(&arena, cdir, Tier_Super, Arch_X86);
     
+#elif defined(PACKAGE_SUPER_ARM64)
+    package(&arena, cdir, Tier_Super, Arch_ARM64);
+    
 #else
 # error No build type specified.
 #endif
